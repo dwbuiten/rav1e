@@ -971,12 +971,11 @@ impl<T: Pixel> ContextInner<T> {
     if frame_number == 0 {
       return FrameType::KEY;
     }
-    if self.config.speed_settings.no_scene_detection {
-      if frame_number % self.config.max_key_frame_interval == 0 {
-        return FrameType::KEY;
-      } else {
-        return FrameType::INTER;
-      }
+
+    // HELL YEAH HACKS
+    if frame_number % self.config.max_key_frame_interval == 0 {
+      // We're not setting the last frame here... but also it shouldn't matter
+      return FrameType::KEY;
     }
 
     let prev_keyframe = self.keyframes.iter()
@@ -994,9 +993,6 @@ impl<T: Pixel> ContextInner<T> {
           self.keyframe_detector.set_last_frame(frame, frame_number as usize);
         }
         return FrameType::INTER;
-      }
-      if distance >= self.config.max_key_frame_interval {
-        return FrameType::KEY;
       }
       if self.keyframe_detector.detect_scene_change(frame, frame_number as usize) {
         return FrameType::KEY;
