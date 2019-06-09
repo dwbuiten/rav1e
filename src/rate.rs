@@ -630,7 +630,7 @@ impl RCState {
           // There's no easy closed form solution, so we bisection searh for it.
           let bit_depth = ctx.config.bit_depth;
           // TODO: Proper handling of lossless.
-          let mut log_qlo = blog64(dc_q(0, 0, bit_depth) as i64)
+          let mut log_qlo = blog64(dc_q(20, 0, bit_depth) as i64)
             - q57(QSCALE + bit_depth as i32 - 8);
           // The AC quantizer tables map to values larger than the DC quantizer
           //  tables, so we use that as the upper bound to make sure we can use
