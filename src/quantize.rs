@@ -103,7 +103,9 @@ pub struct QuantizationContext {
   dc_mul_add: (u32, u32, u32),
 
   ac_quant: u32,
-  ac_offset: i32,
+  ac_offset_tiny: i32,
+  ac_offset0: i32,
+  ac_offset1: i32,
   ac_mul_add: (u32, u32, u32)
 }
 
@@ -204,27 +206,52 @@ impl QuantizationContext {
     self.ac_mul_add = divu_gen(self.ac_quant);
 
     self.dc_offset =
-      self.dc_quant as i32 * (if is_intra { 21 } else { 15 }) / 64;
-    self.ac_offset =
-      self.ac_quant as i32 * (if is_intra { 21 } else { 15 }) / 64;
+      self.dc_quant as i32 * (if is_intra { 26 } else { 15 }) / 64;
+    self.ac_offset0 =
+      self.ac_quant as i32 * (if is_intra { 24 } else { 13 }) / 64;
+    self.ac_offset1 =
+      self.ac_quant as i32 * (if is_intra { 26 } else { 15 }) / 64;
+    self.ac_offset_tiny =
+      self.ac_quant as i32 * (if is_intra { 9 } else { -6 }) / 64;
   }
 
   #[inline]
   pub fn quantize<T>(&self, coeffs: &[T], qcoeffs: &mut [T], coded_tx_size: usize)
     where T: Coefficient
   {
+    let mut is_zero = true;
+    let mut pos = coded_tx_size - 1;
+    while is_zero && pos != 1 {
+      let c = coeffs[pos] << (self.log_tx_scale as usize);
+      let qc = c + (c.signum() * T::cast_from(self.ac_offset_tiny));
+      is_zero = T::cast_from(divu_pair(qc.as_(), self.ac_mul_add)) == T::cast_from(0);
+      pos = pos - 1;
+    }
+
+    // fixme?: we skip DC
+    let last_pos = if is_zero { pos } else { pos + 1 };
+
     qcoeffs[0] = coeffs[0] << (self.log_tx_scale as usize);
     qcoeffs[0] += qcoeffs[0].signum() * T::cast_from(self.dc_offset);
     qcoeffs[0] = T::cast_from(divu_pair(qcoeffs[0].as_(), self.dc_mul_add));
 
-    for (qc, c) in qcoeffs[1..].iter_mut().zip(coeffs[1..].iter()).take(coded_tx_size - 1) {
-      *qc = *c << self.log_tx_scale;
-      *qc += qc.signum() * T::cast_from(self.ac_offset);
-      *qc = T::cast_from(divu_pair((*qc).as_(), self.ac_mul_add));
+    let mut level_mode = 1;
+    for (qc, c) in qcoeffs[1..].iter_mut().zip(coeffs[1..].iter()).take(last_pos) {
+      let coeff = *c << self.log_tx_scale;
+      let level0 = T::cast_from(divu_pair(coeff.as_(), self.ac_mul_add));
+      let offset = if level0 > T::cast_from(1 - level_mode) { self.ac_offset1 } else { self.ac_offset0 };
+      let qcoeff = coeff + (coeff.signum() * T::cast_from(offset));
+      *qc = T::cast_from(divu_pair(qcoeff.as_(), self.ac_mul_add));
+      if level_mode != 0 && *qc == T::cast_from(0) {
+        level_mode = 0;
+      } else if *qc > T::cast_from(1) {
+        level_mode = 1;
+      }
     }
 
-    if qcoeffs.len() > coded_tx_size {
-      for qc in qcoeffs[coded_tx_size..].iter_mut() {
+    let zero_start = coded_tx_size.min(last_pos + 1);
+    if qcoeffs.len() > zero_start {
+      for qc in qcoeffs[zero_start..].iter_mut() {
         *qc = T::cast_from(0);
       }
     }
