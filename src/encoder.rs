@@ -1151,27 +1151,47 @@ pub fn encode_tx_block<T: Pixel>(
   );
 
   let coded_tx_size = av1_get_coded_tx_size(tx_size).area();
-  ts.qc.quantize(coeffs, qcoeffs, coded_tx_size);
+  let mut has_coeff = true; // will be overwritten
+  let mut cost_coeffs = 0; // will be overwritte
+  for pass in 0..2 {
+    let round_to_zero = if pass == 0 { true } else { false }; // second pass is the one we write - the original biases / round to 1
+    let have_seen_zero =
+      ts.qc.quantize(coeffs, qcoeffs, coded_tx_size, round_to_zero);
 
-  let tell_coeffs = w.tell_frac();
-  let has_coeff = if need_recon_pixel || rdo_type.needs_coeff_rate() {
-    cw.write_coeffs_lv_map(
-      w,
-      p,
-      tile_bo,
-      &qcoeffs,
-      mode,
-      tx_size,
-      tx_type,
-      plane_bsize,
-      xdec,
-      ydec,
-      fi.use_reduced_tx_set,
-    )
-  } else {
-    true
-  };
-  let cost_coeffs = w.tell_frac() - tell_coeffs;
+    let checkpoint = w.checkpoint();
+    let cw_checkpoint = cw.checkpoint();
+    let tell_coeffs = w.tell_frac();
+    has_coeff = if need_recon_pixel || rdo_type.needs_coeff_rate() {
+      cw.write_coeffs_lv_map(
+        w,
+        p,
+        tile_bo,
+        &qcoeffs,
+        mode,
+        tx_size,
+        tx_type,
+        plane_bsize,
+        xdec,
+        ydec,
+        fi.use_reduced_tx_set,
+      )
+    } else {
+      true
+    };
+    cost_coeffs = w.tell_frac() - tell_coeffs;
+    if round_to_zero {
+      w.rollback(&checkpoint);
+      cw.rollback(&cw_checkpoint);
+    }
+    if have_seen_zero {
+      println!(
+        "intra={} rate={} round_to_zero={}",
+        mode.is_intra(),
+        cost_coeffs,
+        round_to_zero
+      );
+    }
+  }
   // Reconstruct
   dequantize(
     qidx,

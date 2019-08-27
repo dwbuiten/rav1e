@@ -227,16 +227,28 @@ impl QuantizationContext {
   #[inline]
   pub fn quantize<T>(
     &self, coeffs: &[T], qcoeffs: &mut [T], coded_tx_size: usize,
-  ) where
+    round_to_zero: bool,
+  ) -> (bool)
+  where
     T: Coefficient,
   {
     let mut is_zero = true;
     let mut pos = coded_tx_size - 1;
+    let mut have_seen_zero = false;
     while is_zero && pos != 1 {
       let c = coeffs[pos] << (self.log_tx_scale as usize);
       let qc = c + (c.signum() * T::cast_from(self.ac_offset_tiny));
       is_zero =
         T::cast_from(divu_pair(qc.as_(), self.ac_mul_add)) == T::cast_from(0);
+      if !is_zero && !have_seen_zero && round_to_zero {
+        have_seen_zero = true; // only recurse once
+        if c.signum() * c < T::cast_from(self.ac_quant as i32) {
+          // 31 bits ought to be enough for anyone
+          is_zero = true;
+        }
+      } else if !is_zero {
+        have_seen_zero = true;
+      }
       pos = pos - 1;
     }
 
@@ -273,6 +285,7 @@ impl QuantizationContext {
         *qc = T::cast_from(0);
       }
     }
+    have_seen_zero
   }
 }
 
