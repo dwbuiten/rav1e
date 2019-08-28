@@ -221,7 +221,7 @@ impl QuantizationContext {
     self.ac_offset1 =
       self.ac_quant as i32 * (if is_intra { 21 } else { 15 }) / 64;
     self.ac_offset_tiny =
-      self.ac_quant as i32 * (if is_intra { 21 } else { 15 }) / 64;
+      self.ac_quant as i32 * (if is_intra { 22 } else { 11 }) / 64;
   }
 
   #[inline]
@@ -237,11 +237,12 @@ impl QuantizationContext {
       let qc = c + (c.signum() * T::cast_from(self.ac_offset_tiny));
       is_zero =
         T::cast_from(divu_pair(qc.as_(), self.ac_mul_add)) == T::cast_from(0);
+      qcoeffs[pos] = T::cast_from(divu_pair(qc.as_(), self.ac_mul_add));
       pos = pos - 1;
     }
 
     // fixme?: we skip DC
-    let last_pos = if is_zero { pos } else { pos + 1 };
+    let last_pos = if is_zero { pos - 1 } else { pos + 1 };
 
     qcoeffs[0] = coeffs[0] << (self.log_tx_scale as usize);
     qcoeffs[0] += qcoeffs[0].signum() * T::cast_from(self.dc_offset);
