@@ -221,7 +221,7 @@ impl QuantizationContext {
     self.ac_offset1 =
       self.ac_quant as i32 * (if is_intra { 21 } else { 15 }) / 64;
     self.ac_offset_tiny =
-      self.ac_quant as i32 * (if is_intra { 21 } else { 15 }) / 64;
+      self.ac_quant as i32 * (if is_intra { 22 } else { 11 }) / 64;
   }
 
   #[inline]
