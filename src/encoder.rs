@@ -1156,6 +1156,7 @@ pub fn encode_tx_block<T: Pixel>(
   let coded_tx_size = av1_get_coded_tx_size(tx_size).area();
   let mut has_coeff = true; // will be overwritten
   let mut cost_coeffs = 0; // will be overwritte
+  let mut rate_one = 0;
   for pass in 0..2 {
     let round_to_zero = if pass == 0 { true } else { false }; // second pass is the one we write - the original biases / round to 1
     let have_seen_zero =
@@ -1182,17 +1183,27 @@ pub fn encode_tx_block<T: Pixel>(
       true
     };
     cost_coeffs = w.tell_frac() - tell_coeffs;
+    if !have_seen_zero {
+      break;
+    }
     if round_to_zero {
+      rate_one = cost_coeffs as i64;
       w.rollback(&checkpoint);
       cw.rollback(&cw_checkpoint);
-    }
-    if have_seen_zero {
-      println!(
-        "intra={} rate={} round_to_zero={}",
-        mode.is_intra(),
-        cost_coeffs,
-        round_to_zero
-      );
+    } else {
+      let delta: i64 = (cost_coeffs as i64) - rate_one;
+      if mode.is_intra() {
+        cw.expweightsum_intra = (delta as f64) + ((1.0 - 0.6) * cw.expweightsum_intra);
+        cw.expweightcount_intra = 1.0 + ((1.0 - 0.6) * cw.expweightcount_intra);
+      } else {
+        cw.expweightsum_inter = (delta as f64) + ((1.0 - 0.6) * cw.expweightsum_inter);
+        cw.expweightcount_inter = 1.0 + ((1.0 - 0.6) * cw.expweightcount_inter);
+      }
+      let avg = if mode.is_intra() { cw.expweightsum_intra / cw.expweightcount_intra } else { cw.expweightsum_inter / cw.expweightcount_inter };
+      let lambda = ::std::f64::consts::LN_2 / 6.0;
+      let x = (((avg / 8.0) * lambda) / 2.0) + 0.5;
+      let bias = (64.0 * (1.0 - x)).round() as i32;
+      ts.qc.update_deadzone(bias);
     }
   }
   // Reconstruct

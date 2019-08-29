@@ -224,6 +224,12 @@ impl QuantizationContext {
       self.ac_quant as i32 * (if is_intra { 21 } else { 15 }) / 64;
   }
 
+  pub fn update_deadzone(
+    &mut self, val: i32
+  ) {
+    self.ac_offset_tiny = val / 64;
+  }
+
   #[inline]
   pub fn quantize<T>(
     &self, coeffs: &[T], qcoeffs: &mut [T], coded_tx_size: usize,

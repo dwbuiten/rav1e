@@ -1975,6 +1975,10 @@ pub struct ContextWriterCheckpoint {
 pub struct ContextWriter<'a> {
   pub bc: BlockContext<'a>,
   pub fc: &'a mut CDFContext,
+  pub expweightsum_inter: f64,
+  pub expweightcount_inter: f64,
+  pub expweightsum_intra: f64,
+  pub expweightcount_intra: f64,
   #[cfg(feature = "desync_finder")]
   fc_map: Option<FieldMap>, // For debugging purposes
 }
@@ -1986,6 +1990,10 @@ impl<'a> ContextWriter<'a> {
     let mut cw = ContextWriter {
       fc,
       bc,
+      expweightsum_inter: 0.0,
+      expweightcount_inter: 0.0,
+      expweightsum_intra: 0.0,
+      expweightcount_intra: 0.0,
       #[cfg(feature = "desync_finder")]
       fc_map: Default::default(),
     };
