@@ -215,11 +215,11 @@ impl QuantizationContext {
     self.ac_mul_add = divu_gen(self.ac_quant);
 
     self.dc_offset =
-      self.dc_quant as i32 * (if is_intra { 55 } else { 54 }) / 128;
+      self.dc_quant as i32 * (if is_intra { 113 } else { 104 }) / 256;
     self.ac_offset0 =
-      self.ac_quant as i32 * (if is_intra { 99 } else { 98 }) / 256;
+      self.ac_quant as i32 * (if is_intra { 98 } else { 97 }) / 256;
     self.ac_offset1 =
-      self.ac_quant as i32 * (if is_intra { 55 } else { 54 }) / 128;
+      self.ac_quant as i32 * (if is_intra { 109 } else { 108 }) / 256;
     self.ac_offset_tiny =
       self.ac_quant as i32 * (if is_intra { 22 } else { 11 }) / 64;
   }
