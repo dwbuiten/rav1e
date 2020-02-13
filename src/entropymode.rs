@@ -33,7 +33,6 @@ const TX_SIZE_LUMA_MIN: usize = TxSize::TX_4X4 as usize;
 const TX_SIZE_CTX_MIN: usize = (TX_SIZE_LUMA_MIN + 1);
 pub const MAX_TX_CATS: usize = (TxSize::TX_SIZES - TX_SIZE_CTX_MIN);
 pub const MAX_TX_DEPTH: usize = 2;
-pub const TXFM_PARTITION_CONTEXTS: usize = 21; // (TxSize::TX_SIZES - TxSize::TX_8X8) * 6 - 3;
 
 // LUTS ---------------------
 
@@ -1340,6 +1339,7 @@ pub static default_palette_uv_color_index_cdf: [[[u16;
   ],
 ];
 
+#[allow(unused)]
 pub static default_txfm_partition_cdf: [[u16; cdf_size!(2)];
   TXFM_PARTITION_CONTEXTS] = [
   cdf!(28581),
