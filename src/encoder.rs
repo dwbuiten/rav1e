@@ -367,7 +367,7 @@ impl<T: Pixel> FrameState<T> {
     // TODO(negge): Use fi.cfg.chroma_sampling when we store VideoDetails in FrameInvariants
     FrameState::new_with_frame(
       fi,
-      Arc::new(Frame::new(fi.width, fi.height, fi.sequence.chroma_sampling)),
+      Arc::new(Frame::new(fi.width, fi.height, fi.sequence.chroma_sampling, 0)),
     )
   }
 
@@ -377,6 +377,7 @@ impl<T: Pixel> FrameState<T> {
     let rs = RestorationState::new(fi, &frame);
     let luma_width = frame.planes[0].cfg.width;
     let luma_height = frame.planes[0].cfg.height;
+    let timestamp = frame.timestamp;
 
     let hres = frame.planes[0].downsampled(fi.width, fi.height);
     let qres = hres.downsampled(fi.width, fi.height);
@@ -390,6 +391,7 @@ impl<T: Pixel> FrameState<T> {
         luma_width,
         luma_height,
         fi.sequence.chroma_sampling,
+        timestamp,
       )),
       cdfs: CDFContext::new(0),
       context_update_tile_id: 0,
@@ -3542,6 +3544,7 @@ fn encode_tile<'a, T: Pixel>(
           ts.rec.planes[1].scratch_copy(),
           ts.rec.planes[2].scratch_copy(),
         ],
+        timestamp: 0,
       };
 
       // copy ts.deblock because we need to set some of our own values here

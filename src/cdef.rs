@@ -333,6 +333,7 @@ pub fn cdef_block8_frame<T: Pixel>(
         Plane::new(w_8 << 3 >> xdec, h_8 << 3 >> ydec, xdec, ydec, 0, 0)
       },
     ],
+    timestamp: 0,
   }
 }
 
@@ -361,6 +362,7 @@ pub fn cdef_padded_tile_copy<T: Pixel>(
         };
         [new_plane(0), new_plane(1), new_plane(2)]
       },
+      timestamp: 0,
     }
   };
   // Copy data into padded frame
@@ -418,6 +420,7 @@ pub fn cdef_padded_frame_copy<T: Pixel>(in_frame: &Frame<T>) -> Frame<u16> {
       };
       [new_plane(0), new_plane(1), new_plane(2)]
     },
+    timestamp: 0,
   };
 
   for p in 0..3 {
@@ -647,6 +650,7 @@ pub fn cdef_filter_tile<T: Pixel>(
       };
       [new_plane(0), new_plane(1), new_plane(2)]
     },
+    timestamp: 0,
   };
 
   for p in 0..3 {

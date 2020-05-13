@@ -45,7 +45,7 @@ pub use v_frame::frame::Frame;
 /// Public Trait Interface for Frame Allocation
 pub trait FrameAlloc {
   /// Initialise new frame default type
-  fn new(width: usize, height: usize, chroma_sampling: ChromaSampling)
+  fn new(width: usize, height: usize, chroma_sampling: ChromaSampling, timestamp: u64)
     -> Self;
 }
 
@@ -54,13 +54,14 @@ impl<T: Pixel> FrameAlloc for Frame<T> {
   /// new function calls new_with_padding function which takes luma_padding
   /// as parameter
   fn new(
-    width: usize, height: usize, chroma_sampling: ChromaSampling,
+    width: usize, height: usize, chroma_sampling: ChromaSampling, timestamp: u64,
   ) -> Self {
     v_frame::frame::Frame::new_with_padding(
       width,
       height,
       chroma_sampling,
       LUMA_PADDING,
+      timestamp,
     )
   }
 }

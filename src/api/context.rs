@@ -52,6 +52,7 @@ impl<T: Pixel> Context<T> {
       self.config.width,
       self.config.height,
       self.config.chroma_sampling,
+      0,
     )
   }
 
